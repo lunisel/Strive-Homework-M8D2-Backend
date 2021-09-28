@@ -19,7 +19,7 @@ const UserSchema = new Schema(
   { timestamps: true }
 );
 
-UserSchema.pre("save", async function (next) {
+async function hashPassword(next) {
   const newUser = this;
   const plainPW = newUser.password;
 
@@ -27,7 +27,9 @@ UserSchema.pre("save", async function (next) {
     newUser.password = await bcrypt.hash(plainPW, 10);
   }
   next();
-});
+}
+
+UserSchema.pre("save", hashPassword);
 
 UserSchema.methods.toJSON = function () {
   const userDocument = this;

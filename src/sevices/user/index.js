@@ -35,13 +35,20 @@ userRouter.get("/me", basicAuthMiddleware, async (req, resp, next) => {
 
 userRouter.put("/me", basicAuthMiddleware, async (req, resp, next) => {
   try {
-    const updatedUser = await UserModel.findByIdAndUpdate(
-      req.user._id,
-      req.body,
-      {
-        new: true,
-      }
-    );
+    // const updatedUser = await UserModel.findByIdAndUpdate(
+    //   req.user._id,
+    //   req.body,
+    //   {
+    //     new: true,
+    //   }
+    // );
+
+    let updatedUser = await UserModel.findById(req.user._id);
+
+    updatedUser._doc = { ...req.body };
+
+    await updatedUser.save();
+
     resp.send(updatedUser);
   } catch (error) {
     next(error);
