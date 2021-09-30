@@ -1,6 +1,6 @@
 import express from "express";
 import UserModel from "./schema.js";
-import { basicAuthMiddleware } from "../../auth/basic.js";
+import { JWTMiddleware } from "../../auth/token.js";
 import { JWTAuthenticate } from "../../auth/tools.js";
 import createHttpError from "http-errors";
 
@@ -18,16 +18,16 @@ userRouter.post("/register", async (req, resp, next) => {
   }
 });
 
-userRouter.get("/", basicAuthMiddleware, async (req, resp, next) => {
+userRouter.get("/", async (req, resp, next) => {
   try {
-    const users = await UserModel.find();
+    const users = await UserModel.find({}, { name: 1, surname: 1, email: 1 });
     resp.send(users);
   } catch (err) {
     next(err);
   }
 });
 
-userRouter.get("/me", basicAuthMiddleware, async (req, resp, next) => {
+userRouter.get("/me", JWTMiddleware, async (req, resp, next) => {
   try {
     resp.send(req.user);
   } catch (error) {
@@ -35,21 +35,15 @@ userRouter.get("/me", basicAuthMiddleware, async (req, resp, next) => {
   }
 });
 
-userRouter.put("/me", basicAuthMiddleware, async (req, resp, next) => {
+userRouter.put("/me", JWTMiddleware, async (req, resp, next) => {
   try {
-    // const updatedUser = await UserModel.findByIdAndUpdate(
-    //   req.user._id,
-    //   req.body,
-    //   {
-    //     new: true,
-    //   }
-    // );
-
-    let updatedUser = await UserModel.findById(req.user._id);
-
-    updatedUser._doc = { ...req.body };
-
-    await updatedUser.save();
+    const updatedUser = await UserModel.findByIdAndUpdate(
+      req.user._id,
+      req.body,
+      {
+        new: true,
+      }
+    );
 
     resp.send(updatedUser);
   } catch (error) {
@@ -57,7 +51,7 @@ userRouter.put("/me", basicAuthMiddleware, async (req, resp, next) => {
   }
 });
 
-userRouter.delete("/me", basicAuthMiddleware, async (req, resp, next) => {
+userRouter.delete("/me", JWTMiddleware, async (req, resp, next) => {
   try {
     const user = await UserModel.findById(req.user._id);
 
@@ -75,15 +69,15 @@ userRouter.delete("/me", basicAuthMiddleware, async (req, resp, next) => {
 
 userRouter.post("/login", async (req, resp, next) => {
   try {
-    const {email, password} = req.body
+    const { email, password } = req.body;
 
-    const user = await UserModel.checkCredentials(email, password)
+    const user = await UserModel.checkCredentials(email, password);
 
-    if(user){
-      const accessToken = await JWTAuthenticate(user)
-      resp.send({accessToken})
-    }else{
-      next(createHttpError(401, "Wrong credentials"))
+    if (user) {
+      const accessToken = await JWTAuthenticate(user);
+      resp.send({ accessToken });
+    } else {
+      next(createHttpError(401, "Wrong credentials"));
     }
   } catch (err) {
     next(err);

@@ -31,6 +31,16 @@ async function hashPassword(next) {
 
 UserSchema.pre("save", hashPassword);
 
+UserSchema.pre('findOneAndUpdate', async function () {
+  const update = this.getUpdate();
+  const { password: plainPwd } = update
+
+  if (plainPwd) {
+    const password = await bcrypt.hash(plainPwd, 10)
+    this.setUpdate({ ...update, password })
+  }
+});
+
 UserSchema.methods.toJSON = function () {
   const userDocument = this;
 
