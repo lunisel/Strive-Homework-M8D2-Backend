@@ -1,6 +1,8 @@
 import express from "express";
 import UserModel from "./schema.js";
 import { basicAuthMiddleware } from "../../auth/basic.js";
+import { JWTAuthenticate } from "../../auth/tools.js";
+import createHttpError from "http-errors";
 
 const userRouter = express.Router();
 
@@ -67,6 +69,23 @@ userRouter.delete("/me", basicAuthMiddleware, async (req, resp, next) => {
     }
   } catch (err) {
     console.log(err);
+    next(err);
+  }
+});
+
+userRouter.post("/login", async (req, resp, next) => {
+  try {
+    const {email, password} = req.body
+
+    const user = await UserModel.checkCredentials(email, password)
+
+    if(user){
+      const accessToken = await JWTAuthenticate(user)
+      resp.send({accessToken})
+    }else{
+      next(createHttpError(401, "Wrong credentials"))
+    }
+  } catch (err) {
     next(err);
   }
 });
