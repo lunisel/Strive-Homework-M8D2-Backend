@@ -1,7 +1,7 @@
 import express from "express";
 import UserModel from "./schema.js";
 import { JWTMiddleware } from "../../auth/token.js";
-import { JWTAuthenticate } from "../../auth/tools.js";
+import { JWTAuthenticate, refreshTokens } from "../../auth/tools.js";
 import createHttpError from "http-errors";
 
 const userRouter = express.Router();
@@ -74,13 +74,28 @@ userRouter.post("/login", async (req, resp, next) => {
     const user = await UserModel.checkCredentials(email, password);
 
     if (user) {
-      const accessToken = await JWTAuthenticate(user);
-      resp.send({ accessToken });
+      const { accessToken, refreshToken } = await JWTAuthenticate(user);
+      console.log(accessToken, refreshToken);
+      resp.send({ accessToken, refreshToken });
     } else {
       next(createHttpError(401, "Wrong credentials"));
     }
   } catch (err) {
     next(err);
+  }
+});
+
+userRouter.post("/refreshToken", async (req, res, next) => {
+  try {
+    const { actualRefreshToken } = req.body;
+
+    const { accessToken, refreshToken } = await refreshTokens(
+      actualRefreshToken
+    );
+
+    res.send({ accessToken, refreshToken });
+  } catch (error) {
+    next(error);
   }
 });
 
